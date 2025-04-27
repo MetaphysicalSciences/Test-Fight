@@ -1,3 +1,4 @@
+// Define the variables to track the current frame, animation type, and image
 let currentFrame = 0;
 let isFlipped = false;  // Track whether the character is facing left or right
 let animationType = 'idle'; // Default animation type
@@ -5,7 +6,7 @@ const totalIdleFrames = 60;
 const totalWalkFrames = 76;  // From tile000.png to tile075.png
 const totalPunchFrames = 100;  // From tile000.png to tile099.png
 const totalSecretFrames = 16; // From tile000.png to tile015.png
-const characterImage = document.getElementById("character");
+const characterImage = document.getElementById("character"); // Get the character image element
 
 // Function to change the image based on the current frame and animation type
 function changeCharacterFrame() {
@@ -14,28 +15,28 @@ function changeCharacterFrame() {
 
     // Flip the character if moving right
     if (isFlipped) {
-        characterImage.style.transform = "scaleX(-1)";
+        characterImage.style.transform = "scaleX(-1)"; // Flip image horizontally
     } else {
-        characterImage.style.transform = "scaleX(1)";
+        characterImage.style.transform = "scaleX(1)"; // Set normal (non-flipped) view
     }
 
     // Determine the image source path based on the current animation and frame
     if (animationType === 'walk') {
-        // Walking frames (tile060.png to tile075.png)
-        characterImage.src = `walk/tile${(currentFrame + 60).toString().padStart(3, "0")}.png`;
+        // Walking frames (tile000.png to tile075.png)
+        characterImage.src = `walk/tile${frameNumber}.png`;
     } else if (animationType === 'punch') {
-        // Punching frames (tile076.png to tile099.png)
-        characterImage.src = `punch/tile${(currentFrame + 76).toString().padStart(3, "0")}.png`;
+        // Punching frames (tile000.png to tile099.png)
+        characterImage.src = `punch/tile${frameNumber}.png`;
     } else if (animationType === 'test1') {
-        // Secret animation frames (tile100.png to tile115.png)
-        characterImage.src = `test1/tile${(currentFrame + 100).toString().padStart(3, "0")}.png`;
+        // Secret animation frames (tile000.png to tile015.png)
+        characterImage.src = `test1/tile${frameNumber}.png`;
     } else {
         // Idle frames (tile000.png to tile059.png)
         characterImage.src = `idle/tile${frameNumber}.png`;
     }
 }
 
-// Function to handle walking
+// Function to handle walking (movement)
 function walk(direction) {
     if (direction === 'right') {
         isFlipped = false;  // Facing right
