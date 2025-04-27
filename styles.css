@@ -1,19 +1,20 @@
-body {
-    margin: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+#game-container {
+    width: 800px;
+    height: 600px;
+    margin: 0 auto;
+    position: relative;
     background-color: #f0f0f0;
+    overflow: hidden;
 }
 
-.character-container {
-    width: 100px; /* Adjust based on your character's size */
-    height: 100px; /* Adjust based on your character's size */
-}
-
-#character {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
+#player {
+    position: absolute;
+    width: 64px; /* Adjust the width of the player */
+    height: 64px; /* Adjust the height of the player */
+    top: 250px;
+    left: 100px;
+    background-image: url('idle/tile000.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    transition: transform 0.1s linear;
 }
