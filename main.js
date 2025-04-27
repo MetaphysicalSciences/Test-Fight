@@ -1,85 +1,80 @@
-// Define the variables to track the current frame, animation type, and image
+const player = document.getElementById('player');
+let currentAnim = 'idle'; // Default animation
 let currentFrame = 0;
-let isFlipped = false;  // Track whether the character is facing left or right
-let animationType = 'idle'; // Default animation type
-const totalIdleFrames = 60;
-const totalWalkFrames = 76;  // From tile000.png to tile075.png
-const totalPunchFrames = 100;  // From tile000.png to tile099.png
-const totalSecretFrames = 16; // From tile000.png to tile015.png
-const characterImage = document.getElementById("character"); // Get the character image element
+let movingRight = false;
+let isPunching = false;
+let isSecret = false;
 
-// Function to change the image based on the current frame and animation type
-function changeCharacterFrame() {
-    let frameNumber = currentFrame.toString().padStart(3, "0");
-    let animationFolder = animationType;
+// Define total frames per animation
+const idleFrames = 60;
+const walkFrames = 76;
+const punchFrames = 100;
+const secretFrames = 16;
 
-    // Flip the character if moving right
-    if (isFlipped) {
-        characterImage.style.transform = "scaleX(-1)"; // Flip image horizontally
-    } else {
-        characterImage.style.transform = "scaleX(1)"; // Set normal (non-flipped) view
+// Helper function to update the image based on current animation and frame
+function updatePlayerImage() {
+    let frame = currentFrame.toString().padStart(3, '0');
+    let animationFolder = '';
+
+    if (currentAnim === 'idle') {
+        animationFolder = 'idle';
+    } else if (currentAnim === 'walk') {
+        animationFolder = 'walk';
+    } else if (currentAnim === 'punch') {
+        animationFolder = 'punch';
+    } else if (currentAnim === 'secret') {
+        animationFolder = 'test1';
     }
 
-    // Determine the image source path based on the current animation and frame
-    if (animationType === 'walk') {
-        // Walking frames (tile000.png to tile075.png)
-        characterImage.src = `walk/tile${frameNumber}.png`;
-    } else if (animationType === 'punch') {
-        // Punching frames (tile000.png to tile099.png)
-        characterImage.src = `punch/tile${frameNumber}.png`;
-    } else if (animationType === 'test1') {
-        // Secret animation frames (tile000.png to tile015.png)
-        characterImage.src = `test1/tile${frameNumber}.png`;
-    } else {
-        // Idle frames (tile000.png to tile059.png)
-        characterImage.src = `idle/tile${frameNumber}.png`;
-    }
+    player.style.backgroundImage = `url('${animationFolder}/tile${frame}.png')`;
 }
 
-// Function to handle walking (movement)
-function walk(direction) {
-    if (direction === 'right') {
-        isFlipped = false;  // Facing right
-    } else if (direction === 'left') {
-        isFlipped = true;   // Facing left
-    }
-
-    animationType = 'walk';  // Switch to walking animation
-    currentFrame = (currentFrame + 1) % totalWalkFrames;  // Loop through walk frames
-    changeCharacterFrame();
-}
-
-// Function to handle punching
-function punch() {
-    animationType = 'punch';  // Switch to punch animation
-    currentFrame = (currentFrame + 1) % totalPunchFrames;  // Loop through punch frames
-    changeCharacterFrame();
-}
-
-// Function to handle the secret animation when 'P' is pressed
-function secretAnimation() {
-    animationType = 'test1';  // Switch to secret animation
-    currentFrame = (currentFrame + 1) % totalSecretFrames;  // Loop through secret frames
-    changeCharacterFrame();
-}
-
-// Listen for key presses to control movement and animations
+// Update the animation on keypress
 document.addEventListener('keydown', (event) => {
-    if (event.key === 'ArrowRight') {
-        walk('right');  // Move right when arrow right key is pressed
-    } else if (event.key === 'ArrowLeft') {
-        walk('left');   // Move left when arrow left key is pressed
+    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+        currentAnim = 'walk';
+        movingRight = event.key === 'ArrowRight';
+        currentFrame = 0; // Reset animation
     } else if (event.key === ' ') {
-        punch();        // Punch when spacebar is pressed
-    } else if (event.key === 'p' || event.key === 'P') {
-        secretAnimation();  // Activate secret animation when 'P' is pressed
+        currentAnim = 'punch';
+        currentFrame = 0; // Reset punch animation
+    } else if (event.key === 'p') {
+        currentAnim = 'secret';
+        currentFrame = 0; // Reset secret animation
     }
 });
 
-// Start the idle animation when no key is pressed
-setInterval(() => {
-    if (animationType === 'idle') {
-        currentFrame = (currentFrame + 1) % totalIdleFrames;  // Loop through idle frames
-        changeCharacterFrame();
+// Update the character's position and flip when moving right
+function movePlayer() {
+    if (currentAnim === 'walk') {
+        currentFrame = (currentFrame + 1) % walkFrames;
+
+        if (movingRight) {
+            player.style.transform = 'scaleX(1)';
+            player.style.left = parseInt(player.style.left) + 5 + 'px';
+        } else {
+            player.style.transform = 'scaleX(-1)';
+            player.style.left = parseInt(player.style.left) - 5 + 'px';
+        }
     }
-}, 100);  // Adjust the speed of the idle animation here (lower is faster)
+
+    // Loop through idle animation if not moving
+    if (currentAnim === 'idle') {
+        currentFrame = (currentFrame + 1) % idleFrames;
+    }
+
+    // Loop through punch animation when space is pressed
+    if (currentAnim === 'punch') {
+        currentFrame = (currentFrame + 1) % punchFrames;
+    }
+
+    // Loop through secret animation when P is pressed
+    if (currentAnim === 'secret') {
+        currentFrame = (currentFrame + 1) % secretFrames;
+    }
+
+    updatePlayerImage();
+}
+
+// Call movePlayer every 100ms
+setInterval(movePlayer, 100);
