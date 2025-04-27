@@ -1,80 +1,90 @@
 const player = document.getElementById('player');
-let currentAnim = 'idle'; // Default animation
+let currentAnim = 'idle';
 let currentFrame = 0;
-let movingRight = false;
-let isPunching = false;
-let isSecret = false;
+let direction = 1;       // +1 = facing right, -1 = facing left
+let movementKeys = {};   // track W/A/S/D
 
-// Define total frames per animation
-const idleFrames = 60;
-const walkFrames = 76;
-const punchFrames = 100;
-const secretFrames = 16;
+// total frames
+const frames = {
+  idle:   60,
+  walk:   76,
+  punch: 100,
+  secret: 16,
+};
 
-// Helper function to update the image based on current animation and frame
-function updatePlayerImage() {
-    let frame = currentFrame.toString().padStart(3, '0');
-    let animationFolder = '';
-
-    if (currentAnim === 'idle') {
-        animationFolder = 'idle';
-    } else if (currentAnim === 'walk') {
-        animationFolder = 'walk';
-    } else if (currentAnim === 'punch') {
-        animationFolder = 'punch';
-    } else if (currentAnim === 'secret') {
-        animationFolder = 'test1';
-    }
-
-    player.style.backgroundImage = `url('${animationFolder}/tile${frame}.png')`;
+function updateBackground() {
+  const n = String(currentFrame).padStart(3, '0');
+  const folder = currentAnim === 'secret' ? 'test1' : currentAnim;
+  player.style.backgroundImage = `url('${folder}/tile${n}.png')`;
+  player.style.transform = `scaleX(${direction})`;
 }
 
-// Update the animation on keypress
-document.addEventListener('keydown', (event) => {
-    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
-        currentAnim = 'walk';
-        movingRight = event.key === 'ArrowRight';
-        currentFrame = 0; // Reset animation
-    } else if (event.key === ' ') {
-        currentAnim = 'punch';
-        currentFrame = 0; // Reset punch animation
-    } else if (event.key === 'p') {
-        currentAnim = 'secret';
-        currentFrame = 0; // Reset secret animation
-    }
+function stepAnim() {
+  // advance frame
+  currentFrame = (currentFrame + 1) % frames[currentAnim];
+  updateBackground();
+}
+
+function handleMovement() {
+  // if in secret or punch, only animate, no movement
+  if (currentAnim === 'punch' || currentAnim === 'secret') {
+    return;
+  }
+
+  // horizontal
+  if (movementKeys['a']) {
+    direction = -1;
+    player.style.left = (player.offsetLeft - 5) + 'px';
+    currentAnim = 'walk';
+  } else if (movementKeys['d']) {
+    direction = +1;
+    player.style.left = (player.offsetLeft + 5) + 'px';
+    currentAnim = 'walk';
+  } else {
+    currentAnim = 'idle';
+  }
+
+  // vertical (if you want to use W/S for up/down)
+  if (movementKeys['w']) {
+    player.style.top = (player.offsetTop - 5) + 'px';
+  } else if (movementKeys['s']) {
+    player.style.top = (player.offsetTop + 5) + 'px';
+  }
+}
+
+document.addEventListener('keydown', e => {
+  const key = e.key.toLowerCase();
+  if (['a','s','d','w'].includes(key)) {
+    movementKeys[key] = true;
+  }
+  if (key === ' ') {
+    currentAnim = 'punch';
+    currentFrame = 0;
+  }
+  if (key === 'p') {
+    currentAnim = 'secret';
+    currentFrame = 0;
+  }
 });
 
-// Update the character's position and flip when moving right
-function movePlayer() {
-    if (currentAnim === 'walk') {
-        currentFrame = (currentFrame + 1) % walkFrames;
+document.addEventListener('keyup', e => {
+  const key = e.key.toLowerCase();
+  if (['a','s','d','w'].includes(key)) {
+    movementKeys[key] = false;
+  }
+  // When punch or secret key is released, go back to idle
+  if (key === ' ' && currentAnim === 'punch') {
+    currentAnim = 'idle';
+    currentFrame = 0;
+  }
+  if (key === 'p' && currentAnim === 'secret') {
+    currentAnim = 'idle';
+    currentFrame = 0;
+  }
+});
 
-        if (movingRight) {
-            player.style.transform = 'scaleX(1)';
-            player.style.left = parseInt(player.style.left) + 5 + 'px';
-        } else {
-            player.style.transform = 'scaleX(-1)';
-            player.style.left = parseInt(player.style.left) - 5 + 'px';
-        }
-    }
-
-    // Loop through idle animation if not moving
-    if (currentAnim === 'idle') {
-        currentFrame = (currentFrame + 1) % idleFrames;
-    }
-
-    // Loop through punch animation when space is pressed
-    if (currentAnim === 'punch') {
-        currentFrame = (currentFrame + 1) % punchFrames;
-    }
-
-    // Loop through secret animation when P is pressed
-    if (currentAnim === 'secret') {
-        currentFrame = (currentFrame + 1) % secretFrames;
-    }
-
-    updatePlayerImage();
-}
-
-// Call movePlayer every 100ms
-setInterval(movePlayer, 100);
+// main game loop: move + animate
+setInterval(() => {
+  handleMovement();
+  stepAnim();
+}, 100);
