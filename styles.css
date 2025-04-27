@@ -1,20 +1,13 @@
-#game-container {
-    width: 800px;
-    height: 600px;
-    margin: 0 auto;
-    position: relative;
-    background-color: #f0f0f0;
-    overflow: hidden;
-}
-
 #player {
-    position: absolute;
-    width: 64px; /* Adjust the width of the player */
-    height: 64px; /* Adjust the height of the player */
-    top: 250px;
-    left: 100px;
-    background-image: url('idle/tile000.png');
-    background-size: cover;
-    background-repeat: no-repeat;
-    transition: transform 0.1s linear;
+  position: absolute;
+  /* Remove fixed width/height so we get the full sprite dimensions */
+  /* width: 64px; height: 64px; */
+  top: 250px;
+  left: 100px;
+  background-image: url('idle/tile000.png');
+  /* scale the sprite down if it’s too big on screen, but preserve aspect ratio */
+  background-size: contain;
+  background-repeat: no-repeat;
+  transform-origin: center center;
+  transition: transform 0.1s linear;
 }
