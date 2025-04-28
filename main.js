@@ -1,90 +1,148 @@
-const player = document.getElementById('player');
-let currentAnim = 'idle';
-let currentFrame = 0;
-let direction = 1;       // +1 = facing right, -1 = facing left
-let movementKeys = {};   // track W/A/S/D
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
 
-// total frames
-const frames = {
-  idle:   60,
-  walk:   76,
-  punch: 100,
-  secret: 16,
+// Settings
+const frameRates = {
+    idle: 10,
+    walk: 12,
+    punch: 15,
+    secret: 15
 };
 
-function updateBackground() {
-  const n = String(currentFrame).padStart(3, '0');
-  const folder = currentAnim === 'secret' ? 'test1' : currentAnim;
-  player.style.backgroundImage = `url('${folder}/tile${n}.png')`;
-  player.style.transform = `scaleX(${direction})`;
+const animations = {
+    idle: { path: "idle", frames: 60 },
+    punch: { path: "punch", frames: 88 },
+    walk: { path: "walk", frames: 76 },
+    secret: { path: "secret", frames: 16 }
+};
+
+let player = {
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    width: 100,
+    height: 100,
+    speed: 3,
+    vx: 0,
+    vy: 0,
+    flip: false,
+    currentAnimation: "idle",
+    frameIndex: 0,
+    frameTimer: 0,
+    frameInterval: 1000 / frameRates.idle,
+};
+
+let keys = {};
+let punching = false;
+let secretMode = false;
+
+// Preload images
+let imageCache = {};
+
+for (let anim in animations) {
+    imageCache[anim] = [];
+    for (let i = 0; i < animations[anim].frames; i++) {
+        let img = new Image();
+        img.src = `${animations[anim].path}/tile${i.toString().padStart(3, '0')}.png`;
+        imageCache[anim].push(img);
+    }
 }
 
-function stepAnim() {
-  // advance frame
-  currentFrame = (currentFrame + 1) % frames[currentAnim];
-  updateBackground();
-}
-
-function handleMovement() {
-  // if in secret or punch, only animate, no movement
-  if (currentAnim === 'punch' || currentAnim === 'secret') {
-    return;
-  }
-
-  // horizontal
-  if (movementKeys['a']) {
-    direction = -1;
-    player.style.left = (player.offsetLeft - 5) + 'px';
-    currentAnim = 'walk';
-  } else if (movementKeys['d']) {
-    direction = +1;
-    player.style.left = (player.offsetLeft + 5) + 'px';
-    currentAnim = 'walk';
-  } else {
-    currentAnim = 'idle';
-  }
-
-  // vertical (if you want to use W/S for up/down)
-  if (movementKeys['w']) {
-    player.style.top = (player.offsetTop - 5) + 'px';
-  } else if (movementKeys['s']) {
-    player.style.top = (player.offsetTop + 5) + 'px';
-  }
-}
-
-document.addEventListener('keydown', e => {
-  const key = e.key.toLowerCase();
-  if (['a','s','d','w'].includes(key)) {
-    movementKeys[key] = true;
-  }
-  if (key === ' ') {
-    currentAnim = 'punch';
-    currentFrame = 0;
-  }
-  if (key === 'p') {
-    currentAnim = 'secret';
-    currentFrame = 0;
-  }
+window.addEventListener('keydown', (e) => {
+    keys[e.key.toLowerCase()] = true;
+    if (e.key.toLowerCase() === 'p') {
+        secretMode = true;
+        player.currentAnimation = 'secret';
+        player.frameIndex = 0;
+        player.frameTimer = 0;
+        player.frameInterval = 1000 / frameRates.secret;
+    }
 });
 
-document.addEventListener('keyup', e => {
-  const key = e.key.toLowerCase();
-  if (['a','s','d','w'].includes(key)) {
-    movementKeys[key] = false;
-  }
-  // When punch or secret key is released, go back to idle
-  if (key === ' ' && currentAnim === 'punch') {
-    currentAnim = 'idle';
-    currentFrame = 0;
-  }
-  if (key === 'p' && currentAnim === 'secret') {
-    currentAnim = 'idle';
-    currentFrame = 0;
-  }
+window.addEventListener('keyup', (e) => {
+    keys[e.key.toLowerCase()] = false;
 });
 
-// main game loop: move + animate
-setInterval(() => {
-  handleMovement();
-  stepAnim();
-}, 100);
+window.addEventListener('mousedown', () => {
+    punching = true;
+});
+
+window.addEventListener('mouseup', () => {
+    punching = false;
+});
+
+function update(deltaTime) {
+    player.vx = 0;
+    player.vy = 0;
+    player.flip = false;
+
+    if (!secretMode) {
+        if (keys['w']) player.vy = -player.speed;
+        if (keys['s']) player.vy = player.speed;
+        if (keys['a']) {
+            player.vx = -player.speed;
+            player.flip = true;
+        }
+        if (keys['d']) player.vx = player.speed;
+        
+        if (punching) {
+            player.currentAnimation = "punch";
+            player.frameInterval = 1000 / frameRates.punch;
+        } else if (player.vx !== 0 || player.vy !== 0) {
+            player.currentAnimation = "walk";
+            player.frameInterval = 1000 / frameRates.walk;
+        } else {
+            player.currentAnimation = "idle";
+            player.frameInterval = 1000 / frameRates.idle;
+        }
+    }
+
+    player.x += player.vx;
+    player.y += player.vy;
+
+    // Animation frame update
+    player.frameTimer += deltaTime;
+    if (player.frameTimer > player.frameInterval) {
+        player.frameTimer = 0;
+        player.frameIndex++;
+        if (player.frameIndex >= animations[player.currentAnimation].frames) {
+            player.frameIndex = 0;
+            if (secretMode) {
+                secretMode = false;
+            }
+        }
+    }
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    if (player.flip) {
+        ctx.scale(-1, 1);
+        ctx.drawImage(
+            imageCache[player.currentAnimation][player.frameIndex],
+            -player.x - player.width, player.y,
+            player.width, player.height
+        );
+    } else {
+        ctx.drawImage(
+            imageCache[player.currentAnimation][player.frameIndex],
+            player.x, player.y,
+            player.width, player.height
+        );
+    }
+    ctx.restore();
+}
+
+let lastTime = 0;
+function gameLoop(timeStamp) {
+    const deltaTime = timeStamp - lastTime;
+    lastTime = timeStamp;
+
+    update(deltaTime);
+    draw();
+
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
