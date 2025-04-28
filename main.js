@@ -1,168 +1,131 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-
-const keys = {};
+canvas.width = 800;
+canvas.height = 600;
 
 const player = {
-    x: 400,
-    y: 300,
-    width: 100,
-    height: 100,
-    speed: 3,
-    flip: false,
-    anim: 'idle',
-    frame: 0,
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    speed: 4,
+    vx: 0,
+    vy: 0,
+    facingLeft: false,
+    currentAnimation: 'idle',
+    currentFrame: 0,
     frameTimer: 0,
-    frameDelay: 100,
-    punching: false,
-    secret: false
+    frameInterval: 100, // 100ms per frame
 };
 
 const animations = {
-    idle: { path: 'idle', frames: 60 },
-    walk: { path: 'walk', frames: 76 },
-    punch: { path: 'punch', frames: 88 },
-    secret: { path: 'secret', frames: 16 }
+    idle: { path: 'idle', frameCount: 60 },
+    walk: { path: 'walk', frameCount: 76 },
+    punch: { path: 'punch', frameCount: 88 },
+    secret: { path: 'test1', frameCount: 16 },
 };
 
 const images = {};
 
-// Load all images
-function loadImages(callback) {
-    let total = 0;
-    let loaded = 0;
-
-    for (let anim in animations) {
-        images[anim] = [];
-        for (let i = 0; i < animations[anim].frames; i++) {
-            total++;
-            const img = new Image();
-            img.src = `${animations[anim].path}/tile${i.toString().padStart(3, '0')}.png`;
-            img.onload = () => {
-                loaded++;
-                if (loaded === total) callback();
-            };
-            img.onerror = () => {
-                console.error(`Failed to load ${img.src}`);
-            };
-            images[anim].push(img);
-        }
+for (let anim in animations) {
+    images[anim] = [];
+    for (let i = 0; i < animations[anim].frameCount; i++) {
+        let img = new Image();
+        let num = String(i).padStart(3, '0');
+        img.src = `${animations[anim].path}/tile${num}.png`;
+        images[anim].push(img);
     }
 }
 
-// Controls
-document.addEventListener('keydown', (e) => {
+const keys = {};
+
+document.addEventListener('keydown', e => {
     keys[e.key.toLowerCase()] = true;
-    if (e.key.toLowerCase() === 'p') {
-        player.secret = true;
-        player.anim = 'secret';
-        player.frame = 0;
-        player.frameTimer = 0;
+    if (e.key === 'p') {
+        player.currentAnimation = 'secret';
+        player.currentFrame = 0;
     }
 });
 
-document.addEventListener('keyup', (e) => {
+document.addEventListener('keyup', e => {
     keys[e.key.toLowerCase()] = false;
 });
 
-document.addEventListener('mousedown', () => {
-    if (!player.secret) {
-        player.punching = true;
-        player.anim = 'punch';
-        player.frame = 0;
-        player.frameTimer = 0;
-    }
+canvas.addEventListener('mousedown', () => {
+    player.currentAnimation = 'punch';
+    player.currentFrame = 0;
 });
 
-document.addEventListener('mouseup', () => {
-    player.punching = false;
-});
+function updatePlayer() {
+    player.vx = 0;
+    player.vy = 0;
 
-// Update
-function update(delta) {
-    let moving = false;
-    if (!player.secret && !player.punching) {
-        player.anim = 'idle';
+    if (keys['a']) {
+        player.vx = -player.speed;
+        player.facingLeft = true;
+    }
+    if (keys['d']) {
+        player.vx = player.speed;
+        player.facingLeft = false;
+    }
+    if (keys['w']) {
+        player.vy = -player.speed;
+    }
+    if (keys['s']) {
+        player.vy = player.speed;
     }
 
-    if (!player.secret) {
-        if (keys['a']) {
-            player.x -= player.speed;
-            player.flip = true;
-            moving = true;
-        }
-        if (keys['d']) {
-            player.x += player.speed;
-            player.flip = false;
-            moving = true;
-        }
-        if (keys['w']) {
-            player.y -= player.speed;
-            moving = true;
-        }
-        if (keys['s']) {
-            player.y += player.speed;
-            moving = true;
-        }
-    }
+    player.x += player.vx;
+    player.y += player.vy;
 
-    if (moving && !player.punching && !player.secret) {
-        player.anim = 'walk';
-    }
-
-    player.frameTimer += delta;
-    if (player.frameTimer > player.frameDelay) {
-        player.frameTimer = 0;
-        player.frame++;
-        if (player.frame >= animations[player.anim].frames) {
-            player.frame = 0;
-            if (player.secret) {
-                player.secret = false;
-                player.anim = 'idle';
-            }
-            if (player.punching) {
-                player.punching = false;
-                player.anim = 'idle';
-            }
+    // Change animation
+    if (player.vx !== 0 || player.vy !== 0) {
+        if (player.currentAnimation !== 'walk' && player.currentAnimation !== 'punch' && player.currentAnimation !== 'secret') {
+            player.currentAnimation = 'walk';
+            player.currentFrame = 0;
+        }
+    } else {
+        if (player.currentAnimation !== 'idle' && player.currentAnimation !== 'punch' && player.currentAnimation !== 'secret') {
+            player.currentAnimation = 'idle';
+            player.currentFrame = 0;
         }
     }
 }
 
-// Draw
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+function drawPlayer() {
+    const anim = images[player.currentAnimation];
+    const frame = anim[Math.floor(player.currentFrame) % anim.length];
 
     ctx.save();
-    if (player.flip) {
+    ctx.translate(player.x, player.y);
+    if (player.facingLeft) {
         ctx.scale(-1, 1);
-        ctx.drawImage(
-            images[player.anim][player.frame],
-            -player.x - player.width, player.y,
-            player.width, player.height
-        );
-    } else {
-        ctx.drawImage(
-            images[player.anim][player.frame],
-            player.x, player.y,
-            player.width, player.height
-        );
     }
+    ctx.drawImage(frame, -frame.width / 2, -frame.height / 2);
     ctx.restore();
 }
 
-// Main loop
-let lastTime = 0;
-function loop(timestamp) {
-    const delta = timestamp - lastTime;
-    lastTime = timestamp;
+function gameLoop(timestamp) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    update(delta);
-    draw();
+    updatePlayer();
 
-    requestAnimationFrame(loop);
+    player.frameTimer += player.frameInterval;
+    if (player.frameTimer >= player.frameInterval) {
+        player.currentFrame += 1;
+        player.frameTimer = 0;
+
+        if (player.currentAnimation === 'punch' && player.currentFrame >= images['punch'].length) {
+            player.currentAnimation = 'idle';
+            player.currentFrame = 0;
+        }
+        if (player.currentAnimation === 'secret' && player.currentFrame >= images['secret'].length) {
+            player.currentAnimation = 'idle';
+            player.currentFrame = 0;
+        }
+    }
+
+    drawPlayer();
+
+    requestAnimationFrame(gameLoop);
 }
 
-// Start after loading images
-loadImages(() => {
-    requestAnimationFrame(loop);
-});
+requestAnimationFrame(gameLoop);
