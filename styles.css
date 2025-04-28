@@ -1,11 +1,11 @@
 body {
     margin: 0;
     overflow: hidden;
-    background: #111;
+    background: #ffffff;
 }
 
-#gameCanvas {
-    background: #333;
+canvas {
     display: block;
     margin: 0 auto;
+    background: #ccc;
 }
